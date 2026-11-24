@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Portugal Cultural",
+    "slug": "portugal-cultural",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "jsEngine": "hermes",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
