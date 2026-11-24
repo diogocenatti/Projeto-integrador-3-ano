@@ -29,3 +29,6 @@ yarn-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Mobile standalone public copies
+portugal-cultural-migration/apps/mobile/public/
