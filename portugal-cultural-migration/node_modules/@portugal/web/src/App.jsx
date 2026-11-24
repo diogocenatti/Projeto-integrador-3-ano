@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { fetchPortugalContent } from './services/portugalContent';
 import {
-  foods,
+  foods as fallbackFoods,
   image,
-  legends,
-  living,
-  monuments,
+  legends as fallbackLegends,
+  living as fallbackLiving,
+  monuments as fallbackMonuments,
   monumentModels,
 } from '@portugal/shared';
 
@@ -14,6 +15,56 @@ const filterOptions = [
   { value: 'fe', label: 'Fé e milagres' },
   { value: 'misterio', label: 'Mistério' },
 ];
+
+const normalizeText = (...values) => {
+  const value = values.find((entry) => entry !== null && entry !== undefined && String(entry).trim() !== '');
+  return value === undefined ? '' : String(value);
+};
+
+const normalizeCategoryKey = (value = '') =>
+  String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z]/g, '');
+
+const normalizeItem = (item, fallback = {}) => {
+  const categoryValue = normalizeText(item?.subcategory, item?.category, item?.tag, item?.type, fallback.category);
+  const categoryKey = normalizeCategoryKey(
+    normalizeText(item?.category_key, item?.subcategory, item?.category, fallback.category)
+  );
+
+  return {
+    title: normalizeText(item?.title, item?.name, fallback.title),
+    place: normalizeText(item?.place, item?.location, item?.localidade, fallback.place),
+    category: categoryValue,
+    categoryKey,
+    photo: normalizeText(item?.image_url, item?.photo, item?.image, item?.cover, fallback.photo),
+    short: normalizeText(item?.short_description, item?.short, item?.summary, item?.description, fallback.short),
+    story: normalizeText(item?.story, item?.content, item?.description, item?.about, fallback.story),
+    note: normalizeText(item?.note, item?.details, item?.context, fallback.note),
+    date: normalizeText(item?.date, item?.period, item?.year, fallback.date),
+    modelPath: normalizeText(item?.model_url, item?.model_path, item?.modelPath, item?.model_url, monumentModels[fallback.title] || ''),
+  };
+};
+
+const fallbackData = {
+  legends: fallbackLegends,
+  living: fallbackLiving,
+  monuments: fallbackMonuments,
+  foods: fallbackFoods,
+};
+
+const getSectionKey = (value = '') => {
+  const key = normalizeCategoryKey(value || '');
+
+  if (key.includes('lenda')) return 'legends';
+  if (key.includes('patrimoniovivo') || key.includes('patrimonio') || key.includes('vivo')) return 'living';
+  if (key.includes('monumento') || key.includes('monument')) return 'monuments';
+  if (key.includes('culinaria') || key.includes('food')) return 'foods';
+
+  return null;
+};
 
 function Card({ item, index, type, onOpen }) {
   const imageAlt = `${item.title} — ${item.place}`;
@@ -28,7 +79,7 @@ function Card({ item, index, type, onOpen }) {
           : 'Conhecer o prato';
 
   return (
-    <article className="card" data-category={type === 'legend' ? item.category : undefined}>
+    <article className="card" data-category={type === 'legend' ? item.categoryKey || item.category : undefined}>
       <div className="card-image">
         <img
           src={image(item.photo)}
@@ -52,8 +103,9 @@ function Card({ item, index, type, onOpen }) {
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              if (monumentModels[item.title]) {
-                window.open(monumentModels[item.title], '_blank');
+              const modelPath = item.modelPath || monumentModels[item.title];
+              if (modelPath) {
+                window.open(modelPath, '_blank');
               }
             }}
           >
@@ -155,11 +207,80 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedType, setSelectedType] = useState('legend');
+  const [legendsData, setLegendsData] = useState(fallbackData.legends);
+  const [livingData, setLivingData] = useState(fallbackData.living);
+  const [monumentsData, setMonumentsData] = useState(fallbackData.monuments);
+  const [foodsData, setFoodsData] = useState(fallbackData.foods);
+  const [heroImage, setHeroImage] = useState('');
+  const [featureImage, setFeatureImage] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadContent = async () => {
+      try {
+        const rows = await fetchPortugalContent();
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return;
+        }
+
+        const groups = { legends: [], living: [], monuments: [], foods: [] };
+
+        rows.forEach((row) => {
+          const sectionKey = getSectionKey(
+            normalizeText(row?.section, row?.section_name, row?.category_section, row?.group, row?.type)
+          );
+
+          if (!sectionKey) return;
+          groups[sectionKey].push(normalizeItem(row, fallbackData[sectionKey][0] || {}));
+        });
+
+        if (!isMounted) return;
+
+        const remoteLegends = groups.legends.filter((item) => normalizeText(item.title));
+        const remoteLiving = groups.living.filter((item) => normalizeText(item.title));
+        const remoteMonuments = groups.monuments.filter((item) => normalizeText(item.title));
+        const remoteFoods = groups.foods.filter((item) => normalizeText(item.title));
+
+        setLegendsData(remoteLegends.length ? remoteLegends : fallbackData.legends);
+        setLivingData(remoteLiving.length ? remoteLiving : fallbackData.living);
+        setMonumentsData(remoteMonuments.length ? remoteMonuments : fallbackData.monuments);
+        setFoodsData(remoteFoods.length ? remoteFoods : fallbackData.foods);
+
+        if (rows.length) {
+          const heroRow = rows.find((row) =>
+            row.section === 'site' ||
+            row.subcategory === 'hero' ||
+            row.title === 'Descubra Portugal'
+          );
+
+          if (heroRow) {
+            setHeroImage(normalizeText(heroRow.image_url, heroRow.photo, heroRow.image, heroRow.cover));
+          }
+          const featureRow = rows.find((row) => row.section === 'site' && row.key === 'feature');
+
+          if (featureRow) setFeatureImage(normalizeText(featureRow.photo, featureRow.image, featureRow.cover));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do Supabase:', error);
+      }
+    };
+
+    loadContent();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const visibleLegends = useMemo(() => {
-    if (activeFilter === 'todos') return legends;
-    return legends.filter((item) => item.category === activeFilter);
-  }, [activeFilter]);
+    if (activeFilter === 'todos') return legendsData;
+    return legendsData.filter((item) => {
+      if (!item.categoryKey) return item.category === activeFilter;
+      return item.categoryKey === activeFilter || item.categoryKey.includes(activeFilter);
+    });
+  }, [activeFilter, legendsData]);
 
   return (
     <>
@@ -187,13 +308,16 @@ export default function App() {
           <a href="#lendas" onClick={() => setMenuOpen(false)}>Lendas</a>
           <a href="#vivo" onClick={() => setMenuOpen(false)}>Patrimônio vivo</a>
           <a href="#monumentos" onClick={() => setMenuOpen(false)}>Monumentos</a>
-          <a href="#mapa" onClick={() => setMenuOpen(false)}>Mapa</a>
           <a href="#culinaria" onClick={() => setMenuOpen(false)}>Culinária</a>
         </nav>
       </header>
 
       <main>
-        <section className="hero" id="inicio">
+        <section
+          className="hero"
+          id="inicio"
+          style={heroImage ? { backgroundImage: `linear-gradient(90deg, rgba(9,35,25,.88), rgba(9,35,25,.3)), url("${image(heroImage, 2000)}")` } : { backgroundImage: 'linear-gradient(90deg, rgba(9,35,25,.88), rgba(9,35,25,.3)), url("/img/descubra-portugal.jpg")', backgroundPosition: 'center 55%', backgroundSize: 'cover' }}
+        >
           <div className="hero-content">
             <span className="eyebrow">DESCUBRA PORTUGAL</span>
             <h1>
@@ -267,7 +391,7 @@ export default function App() {
 
           <div className="cards" id="legendsGrid">
             {visibleLegends.map((item, index) => (
-              <Card key={item.title} item={item} index={index} type="legend" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
+              <Card key={`${item.title}-${index}`} item={item} index={index} type="legend" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
             ))}
           </div>
         </section>
@@ -285,14 +409,19 @@ export default function App() {
           </div>
 
           <div className="cards" id="livingGrid">
-            {living.map((item, index) => (
-              <Card key={item.title} item={item} index={index} type="living" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
+            {livingData.map((item, index) => (
+              <Card key={`${item.title}-${index}`} item={item} index={index} type="living" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
             ))}
           </div>
         </section>
 
         <section className="feature">
-          <div className="feature-image" role="img" aria-label="Paisagem arquitetônica portuguesa" />
+          <div
+            className="feature-image"
+            role="img"
+            aria-label="Paisagem arquitetônica portuguesa"
+            style={featureImage ? { backgroundImage: `url("${image(featureImage, 1200)}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+          />
           <div className="feature-content">
             <span className="eyebrow">MEMÓRIA E IDENTIDADE</span>
             <h2>O passado continua <em>presente.</em></h2>
@@ -320,8 +449,8 @@ export default function App() {
           </div>
 
           <div className="cards" id="monumentsGrid">
-            {monuments.map((item, index) => (
-              <Card key={item.title} item={item} index={index} type="monument" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
+            {monumentsData.map((item, index) => (
+              <Card key={`${item.title}-${index}`} item={item} index={index} type="monument" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
             ))}
           </div>
         </section>
@@ -339,8 +468,8 @@ export default function App() {
           </div>
 
           <div className="cards" id="foodGrid">
-            {foods.map((item, index) => (
-              <Card key={item.title} item={item} index={index} type="food" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
+            {foodsData.map((item, index) => (
+              <Card key={`${item.title}-${index}`} item={item} index={index} type="food" onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }} />
             ))}
           </div>
         </section>

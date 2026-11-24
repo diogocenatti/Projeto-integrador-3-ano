@@ -1,9 +1,35 @@
 export const image = (photo, width = 900) => {
-  if (photo.startsWith("img/")) {
-    return photo;
+  if (!photo) {
+    return '';
   }
 
-  return `https://images.unsplash.com/${photo}?auto=format&fit=crop&w=${width}&q=82`;
+  const cleaned = String(photo).replace(/\\/g, '/').trim();
+
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    return cleaned;
+  }
+
+  if (cleaned.startsWith('/img/') || cleaned.startsWith('img/')) {
+    const normalized = cleaned.replace(/^\.?\//, '');
+    const encoded = encodeURI(normalized);
+
+    if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
+      return `http://10.0.2.2:5174/${encoded}`;
+    }
+
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      typeof window.location.origin === 'string' &&
+      window.location.origin !== 'null'
+    ) {
+      return `${window.location.origin}/${encoded}`;
+    }
+
+    return `http://localhost:5174/${encoded}`;
+  }
+
+  return '';
 };
 
 export const legends = [
@@ -176,7 +202,7 @@ export const monuments = [
     place: "Braga, norte de Portugal",
     date: "Desenvolvimento desde o século XVI",
     category: "Barroco, rococó e neoclássico",
-    photo: "img/santuarioBomJesus.jpg",
+    photo: "img/santuariobomjesus.jpg",
     short: "Santuário famoso pela escadaria monumental e pelo conjunto paisagístico.",
     story: `O Santuário do Bom Jesus do Monte desenvolveu-se ao longo de vários séculos. É conhecido pela escadaria monumental que conduz à basílica e representa uma subida simbólica de caráter espiritual. O conjunto inclui capelas, fontes, jardins e diferentes estilos arquitetônicos.`,
     note: "O Santuário do Bom Jesus do Monte foi inscrito na lista do Patrimônio Mundial da UNESCO em 2019."

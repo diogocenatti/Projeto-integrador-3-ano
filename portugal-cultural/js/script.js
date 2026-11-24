@@ -197,7 +197,7 @@ const monuments = [
     place: "Braga, norte de Portugal",
     date: "Desenvolvimento desde o século XVI",
     category: "Barroco, rococó e neoclássico",
-    photo: "img/santuarioBomJesus.jpg",
+    photo: "img/santuariobomjesus.jpg",
     short: "Santuário famoso pela escadaria monumental e pelo conjunto paisagístico.",
     story: `O Santuário do Bom Jesus do Monte desenvolveu-se ao longo de vários séculos. É conhecido pela escadaria monumental que conduz à basílica e representa uma subida simbólica de caráter espiritual. O conjunto inclui capelas, fontes, jardins e diferentes estilos arquitetônicos.`,
     note: "O Santuário do Bom Jesus do Monte foi inscrito na lista do Patrimônio Mundial da UNESCO em 2019."
