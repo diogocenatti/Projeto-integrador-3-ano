@@ -3,12 +3,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import {
-  foods as fallbackFoods,
-  legends as fallbackLegends,
-  living as fallbackLiving,
-  monuments as fallbackMonuments,
-} from '@portugal/shared';
 import { fetchPortugalContent } from './src/services/portugalContent';
 import { registerRootComponent } from 'expo';
 
@@ -38,29 +32,22 @@ const normalizeCategoryKey = (value = '') =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z]/g, '');
 
-const normalizeItem = (item, fallback = {}) => {
-  const categoryValue = normalizeText(item?.subcategory, item?.category, item?.tag, item?.type, fallback.category);
-  const categoryKey = normalizeCategoryKey(normalizeText(item?.category_key, item?.subcategory, item?.category, fallback.category));
+const normalizeItem = (item) => {
+  const categoryValue = normalizeText(item?.subcategory, item?.category, item?.tag, item?.type);
+  const categoryKey = normalizeCategoryKey(normalizeText(item?.category_key, item?.subcategory, item?.category));
 
   return {
-    title: normalizeText(item?.title, item?.name, fallback.title),
-    place: normalizeText(item?.place, item?.location, item?.localidade, fallback.place),
+    title: normalizeText(item?.title, item?.name),
+    place: normalizeText(item?.place, item?.location, item?.localidade),
     category: categoryValue,
     categoryKey,
-    photo: normalizeText(item?.image_url, item?.photo, item?.image, item?.cover, fallback.photo),
-    short: normalizeText(item?.short_description, item?.short, item?.summary, item?.description, fallback.short),
-    story: normalizeText(item?.story, item?.content, item?.description, item?.about, fallback.story),
-    note: normalizeText(item?.note, item?.details, item?.context, fallback.note),
-    date: normalizeText(item?.date, item?.period, item?.year, fallback.date),
-    modelPath: normalizeText(item?.model_url, item?.model_path, item?.modelPath, ''),
+    photo: normalizeText(item?.image_url),
+    short: normalizeText(item?.short_description, item?.short, item?.summary, item?.description),
+    story: normalizeText(item?.story, item?.content, item?.description, item?.about),
+    note: normalizeText(item?.note, item?.details, item?.context),
+    date: normalizeText(item?.date, item?.period, item?.year),
+    modelPath: normalizeText(item?.model_url, item?.model_path, item?.modelPath),
   };
-};
-
-const fallbackData = {
-  legends: fallbackLegends,
-  living: fallbackLiving,
-  monuments: fallbackMonuments,
-  foods: fallbackFoods,
 };
 
 const getSectionKey = (value = '') => {
@@ -75,17 +62,8 @@ const getSectionKey = (value = '') => {
 };
 
 const getModelBaseUrl = () => {
-  const configuredUrl = process.env.EXPO_PUBLIC_WEB_URL;
-
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, '');
-  }
-
-  if (__DEV__ && Platform.OS === 'android') {
-    return 'http://10.0.2.2:5174';
-  }
-
-  return '';
+  const configuredUrl = process.env.EXPO_PUBLIC_WEB_URL || 'https://projeto-integrador-3-ano.vercel.app';
+  return configuredUrl.replace(/\/$/, '');
 };
 
 const resolveModelUrl = (value) => {
@@ -157,7 +135,7 @@ function Card({ item, index, type, onOpen, onModelOpen }) {
     <View style={styles.card}>
       <View style={styles.cardImageWrap}>
         <Image
-          source={resolveImageSource(item.photo, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/galo-de-barcelos.jpg' })}
+          source={resolveImageSource(item.photo, { uri: '' })}
           style={styles.cardImage}
           resizeMode="cover"
         />
@@ -236,7 +214,7 @@ function DetailsModal({ visible, item, type, onClose }) {
             <Text style={styles.closeButtonText}>×</Text>
           </Pressable>
 
-          <Image source={resolveImageSource(item.photo, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/galo-de-barcelos.jpg' })} style={styles.dialogImage} resizeMode="cover" />
+          <Image source={resolveImageSource(item.photo, { uri: '' })} style={styles.dialogImage} resizeMode="cover" />
 
           <View style={styles.dialogBody}>
             <Text style={styles.eyebrowDark}>{category}</Text>
@@ -255,10 +233,10 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedType, setSelectedType] = useState('legend');
   const [modelUrl, setModelUrl] = useState(null);
-  const [legendsData, setLegendsData] = useState(fallbackData.legends);
-  const [livingData, setLivingData] = useState(fallbackData.living);
-  const [monumentsData, setMonumentsData] = useState(fallbackData.monuments);
-  const [foodsData, setFoodsData] = useState(fallbackData.foods);
+  const [legendsData, setLegendsData] = useState([]);
+  const [livingData, setLivingData] = useState([]);
+  const [monumentsData, setMonumentsData] = useState([]);
+  const [foodsData, setFoodsData] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroImage, setHeroImage] = useState('');
   const [featureImage, setFeatureImage] = useState('');
@@ -284,7 +262,7 @@ export default function App() {
           );
 
           if (!sectionKey) return;
-          groups[sectionKey].push(normalizeItem(row, fallbackData[sectionKey][0] || {}));
+          groups[sectionKey].push(normalizeItem(row));
         });
 
         if (!isMounted) return;
@@ -294,10 +272,10 @@ export default function App() {
         const remoteMonuments = groups.monuments.filter((item) => normalizeText(item.title));
         const remoteFoods = groups.foods.filter((item) => normalizeText(item.title));
 
-        setLegendsData(remoteLegends.length ? remoteLegends : fallbackData.legends);
-        setLivingData(remoteLiving.length ? remoteLiving : fallbackData.living);
-        setMonumentsData(remoteMonuments.length ? remoteMonuments : fallbackData.monuments);
-        setFoodsData(remoteFoods.length ? remoteFoods : fallbackData.foods);
+        setLegendsData(remoteLegends);
+        setLivingData(remoteLiving);
+        setMonumentsData(remoteMonuments);
+        setFoodsData(remoteFoods);
 
         if (rows.length) {
           const heroRow = rows.find((row) =>
@@ -389,7 +367,7 @@ export default function App() {
           scrollEventThrottle={16}
         >
           <ImageBackground
-            source={heroImage ? resolveImageSource(heroImage, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/descubra-portugal.jpg' }) : { uri: 'https://projeto-integrador-3-ano.vercel.app/img/descubra-portugal.jpg' }}
+            source={heroImage ? resolveImageSource(heroImage, { uri: '' }) : { uri: '' }}
             style={styles.hero}
             onLayout={(event) => { sectionOffsets.current.inicio = event.nativeEvent.layout.y; }}
             imageStyle={styles.heroImage}
@@ -482,7 +460,7 @@ export default function App() {
 
           <View style={styles.feature}>
             <ImageBackground
-              source={featureImage ? resolveImageSource(featureImage, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/santuariobomjesus.jpg' }) : { uri: 'https://projeto-integrador-3-ano.vercel.app/img/santuariobomjesus.jpg' }}
+              source={featureImage ? resolveImageSource(featureImage, { uri: '' }) : { uri: '' }}
               style={styles.featureImage}
               imageStyle={styles.featureImageFill}
             />
@@ -512,20 +490,6 @@ export default function App() {
                   onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }}
                   onModelOpen={(modelName, modelPath) => {
                     const nextUrl = resolveModelUrl(modelPath || makeModelUrl(modelName));
-
-                    if (!nextUrl) {
-                      setSelectedItem({
-                        title: 'Modelo 3D indisponível',
-                        place: 'Configuração necessária',
-                        category: 'Modelo 3D',
-                        photo: 'img/santuariobomjesus.jpg',
-                        short: 'A URL pública da versão web ainda não foi configurada no APK.',
-                        story: 'Configure EXPO_PUBLIC_WEB_URL com o endereço HTTPS publicado da versão web e gere novamente o APK.',
-                        note: 'Os modelos 3D não podem usar localhost em celulares físicos.',
-                      });
-                      setSelectedType('monument');
-                      return;
-                    }
 
                     if (Platform.OS === 'web') {
                       openModelViewer(nextUrl);
@@ -614,10 +578,8 @@ export default function App() {
   );
 }
 
-const localImages = {};
-
 const resolveImageSource = (photo, fallback) => {
-  if (!photo) return fallback;
+  if (!photo) return { uri: '' };
 
   const cleaned = String(photo).replace(/\\/g, '/').trim();
   if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
@@ -629,7 +591,7 @@ const resolveImageSource = (photo, fallback) => {
     return { uri: `${base.replace(/\/$/, '')}/${cleaned}` };
   }
 
-  return fallback;
+  return { uri: '' };
 };
 
 const styles = StyleSheet.create({
@@ -722,7 +684,6 @@ const styles = StyleSheet.create({
   footerText: { color: '#fff', fontSize: 12, lineHeight: 18, opacity: 0.9 },
   footerTop: { color: '#fff', fontSize: 12, fontWeight: '700', paddingVertical: 6 },
   modelLoading: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fffdf8', alignItems: 'center', justifyContent: 'center' },
-  modelLoadingText: { color: '#146b45', fontSize: 16, fontWeight: '700' },
 });
 
 // Registra o componente principal do aplicativo

@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPortugalContent } from './services/portugalContent';
-import {
-  foods as fallbackFoods,
-  image,
-  legends as fallbackLegends,
-  living as fallbackLiving,
-  monuments as fallbackMonuments,
-  monumentModels,
-} from '@portugal/shared';
+import { image } from '@portugal/shared';
 
 const filterOptions = [
   { value: 'todos', label: 'Todas' },
@@ -28,31 +21,24 @@ const normalizeCategoryKey = (value = '') =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z]/g, '');
 
-const normalizeItem = (item, fallback = {}) => {
-  const categoryValue = normalizeText(item?.subcategory, item?.category, item?.tag, item?.type, fallback.category);
+const normalizeItem = (item) => {
+  const categoryValue = normalizeText(item?.subcategory, item?.category, item?.tag, item?.type);
   const categoryKey = normalizeCategoryKey(
-    normalizeText(item?.category_key, item?.subcategory, item?.category, fallback.category)
+    normalizeText(item?.category_key, item?.subcategory, item?.category)
   );
 
   return {
-    title: normalizeText(item?.title, item?.name, fallback.title),
-    place: normalizeText(item?.place, item?.location, item?.localidade, fallback.place),
+    title: normalizeText(item?.title, item?.name),
+    place: normalizeText(item?.place, item?.location, item?.localidade),
     category: categoryValue,
     categoryKey,
-    photo: normalizeText(item?.image_url, item?.photo, item?.image, item?.cover, fallback.photo),
-    short: normalizeText(item?.short_description, item?.short, item?.summary, item?.description, fallback.short),
-    story: normalizeText(item?.story, item?.content, item?.description, item?.about, fallback.story),
-    note: normalizeText(item?.note, item?.details, item?.context, fallback.note),
-    date: normalizeText(item?.date, item?.period, item?.year, fallback.date),
-    modelPath: normalizeText(item?.model_url, item?.model_path, item?.modelPath, item?.model_url, monumentModels[fallback.title] || ''),
+    photo: normalizeText(item?.image_url),
+    short: normalizeText(item?.short_description, item?.short, item?.summary, item?.description),
+    story: normalizeText(item?.story, item?.content, item?.description, item?.about),
+    note: normalizeText(item?.note, item?.details, item?.context),
+    date: normalizeText(item?.date, item?.period, item?.year),
+    modelPath: normalizeText(item?.model_url, item?.model_path, item?.modelPath),
   };
-};
-
-const fallbackData = {
-  legends: fallbackLegends,
-  living: fallbackLiving,
-  monuments: fallbackMonuments,
-  foods: fallbackFoods,
 };
 
 const getSectionKey = (value = '') => {
@@ -207,10 +193,10 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedType, setSelectedType] = useState('legend');
-  const [legendsData, setLegendsData] = useState(fallbackData.legends);
-  const [livingData, setLivingData] = useState(fallbackData.living);
-  const [monumentsData, setMonumentsData] = useState(fallbackData.monuments);
-  const [foodsData, setFoodsData] = useState(fallbackData.foods);
+  const [legendsData, setLegendsData] = useState([]);
+  const [livingData, setLivingData] = useState([]);
+  const [monumentsData, setMonumentsData] = useState([]);
+  const [foodsData, setFoodsData] = useState([]);
   const [heroImage, setHeroImage] = useState('');
   const [featureImage, setFeatureImage] = useState('');
 
@@ -233,7 +219,7 @@ export default function App() {
           );
 
           if (!sectionKey) return;
-          groups[sectionKey].push(normalizeItem(row, fallbackData[sectionKey][0] || {}));
+          groups[sectionKey].push(normalizeItem(row));
         });
 
         if (!isMounted) return;
@@ -243,10 +229,10 @@ export default function App() {
         const remoteMonuments = groups.monuments.filter((item) => normalizeText(item.title));
         const remoteFoods = groups.foods.filter((item) => normalizeText(item.title));
 
-        setLegendsData(remoteLegends.length ? remoteLegends : fallbackData.legends);
-        setLivingData(remoteLiving.length ? remoteLiving : fallbackData.living);
-        setMonumentsData(remoteMonuments.length ? remoteMonuments : fallbackData.monuments);
-        setFoodsData(remoteFoods.length ? remoteFoods : fallbackData.foods);
+        setLegendsData(remoteLegends);
+        setLivingData(remoteLiving);
+        setMonumentsData(remoteMonuments);
+        setFoodsData(remoteFoods);
 
         if (rows.length) {
           const heroRow = rows.find((row) =>
@@ -316,7 +302,7 @@ export default function App() {
         <section
           className="hero"
           id="inicio"
-          style={heroImage ? { backgroundImage: `linear-gradient(90deg, rgba(9,35,25,.88), rgba(9,35,25,.3)), url("${image(heroImage, 2000)}")` } : { backgroundImage: 'linear-gradient(90deg, rgba(9,35,25,.88), rgba(9,35,25,.3)), url("/img/descubra-portugal.jpg")', backgroundPosition: 'center 55%', backgroundSize: 'cover' }}
+          style={heroImage ? { backgroundImage: `linear-gradient(90deg, rgba(9,35,25,.88), rgba(9,35,25,.3)), url("${image(heroImage, 2000)}")` } : { backgroundImage: 'linear-gradient(90deg, rgba(9,35,25,.88), rgba(9,35,25,.3))', backgroundPosition: 'center 55%', backgroundSize: 'cover' }}
         >
           <div className="hero-content">
             <span className="eyebrow">DESCUBRA PORTUGAL</span>
