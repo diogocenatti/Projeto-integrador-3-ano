@@ -5,7 +5,9 @@ const supabaseUrl =
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
-export const supabase =
+export const supabase = null;
+
+/* 
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
@@ -15,3 +17,4 @@ export const supabase =
         },
       })
     : null;
+*/
