@@ -1,6 +1,10 @@
 import { supabase } from '../lib/supabase';
 
 export async function fetchPortugalContent(section = null) {
+  if (!supabase) {
+    return [];
+  }
+
   let query = supabase.from('portugal_content').select('*');
 
   if (section) {

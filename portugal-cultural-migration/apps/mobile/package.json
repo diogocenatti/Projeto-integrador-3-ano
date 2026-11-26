@@ -11,7 +11,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
     "@portugal/shared": "file:../../packages/shared",
-    "@supabase/supabase-js": "^2.119.0",
+    "@supabase/supabase-js": "^2.49.4",
     "expo": "~52.0.0",
     "expo-asset": "~11.0.5",
     "expo-font": "~13.0.4",
