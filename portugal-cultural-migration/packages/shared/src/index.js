@@ -10,23 +10,7 @@ export const image = (photo, width = 900) => {
   }
 
   if (cleaned.startsWith('/img/') || cleaned.startsWith('img/')) {
-    const normalized = cleaned.replace(/^\.?\//, '');
-    const encoded = encodeURI(normalized);
-
-    if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
-      return `http://10.0.2.2:5174/${encoded}`;
-    }
-
-    if (
-      typeof window !== 'undefined' &&
-      window.location &&
-      typeof window.location.origin === 'string' &&
-      window.location.origin !== 'null'
-    ) {
-      return `${window.location.origin}/${encoded}`;
-    }
-
-    return `http://localhost:5174/${encoded}`;
+    return cleaned.startsWith('/img/') ? cleaned : `/${cleaned}`;
   }
 
   return '';

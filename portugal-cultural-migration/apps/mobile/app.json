@@ -8,10 +8,20 @@
     "jsEngine": "hermes",
     "newArchEnabled": true,
     "android": {
-      "usesCleartextTraffic": true
+      "package": "com.portugalcultural.app",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "562bf617-615b-43af-a7ba-ab35e9411728"
+      }
+    }
   }
 }

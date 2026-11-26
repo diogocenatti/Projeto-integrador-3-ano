@@ -1,7 +1,7 @@
 {
   "name": "@portugal/mobile",
   "private": true,
-  "main": "expo/AppEntry",
+  "main": "./App.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -11,8 +11,12 @@
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
     "@portugal/shared": "file:../../packages/shared",
+    "@supabase/supabase-js": "^2.119.0",
     "expo": "~52.0.0",
+    "expo-asset": "~11.0.5",
+    "expo-font": "~13.0.4",
     "expo-status-bar": "~2.0.0",
+    "expo-system-ui": "~4.0.9",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",

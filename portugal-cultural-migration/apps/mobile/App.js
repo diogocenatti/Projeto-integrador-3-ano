@@ -5,7 +5,6 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import {
   foods as fallbackFoods,
-  image,
   legends as fallbackLegends,
   living as fallbackLiving,
   monuments as fallbackMonuments,
@@ -75,31 +74,41 @@ const getSectionKey = (value = '') => {
 };
 
 const getModelBaseUrl = () => {
-  if (Platform.OS === 'android') {
+  const configuredUrl = process.env.EXPO_PUBLIC_WEB_URL;
+
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, '');
+  }
+
+  if (__DEV__ && Platform.OS === 'android') {
     return 'http://10.0.2.2:5174';
   }
 
-  if (Platform.OS === 'ios') {
-    return 'http://localhost:5174';
-  }
-
-  return 'http://localhost:5174';
+  return '';
 };
 
 const resolveModelUrl = (value) => {
   const base = getModelBaseUrl();
 
-  if (!value) {
+  if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
+    return value;
+  }
+
+  if (!base) {
+    return '';
+  }
+
+  const cleaned = String(value || '').trim().replace(/\\/g, '/');
+  if (!cleaned) {
     return `${base}/index.html`;
   }
 
-  const cleaned = String(value).trim().replace(/\\/g, '/');
+  const normalized = cleaned.startsWith('./')
+    ? cleaned.replace(/^\.\//, '/')
+    : cleaned.startsWith('/')
+      ? cleaned
+      : `/${cleaned}`;
 
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
-    return cleaned;
-  }
-
-  const normalized = cleaned.startsWith('./') ? cleaned.replace(/^\.\//, '/') : cleaned.startsWith('/') ? cleaned : `/${cleaned}`;
   return `${base}${normalized}`.replace(/ /g, '%20');
 };
 
@@ -147,7 +156,7 @@ function Card({ item, index, type, onOpen, onModelOpen }) {
     <View style={styles.card}>
       <View style={styles.cardImageWrap}>
         <Image
-          source={{ uri: image(item.photo) }}
+          source={resolveImageSource(item.photo, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/galo-de-barcelos.jpg' })}
           style={styles.cardImage}
           resizeMode="cover"
         />
@@ -226,7 +235,7 @@ function DetailsModal({ visible, item, type, onClose }) {
             <Text style={styles.closeButtonText}>×</Text>
           </Pressable>
 
-          <Image source={{ uri: image(item.photo, 1200) }} style={styles.dialogImage} resizeMode="cover" />
+          <Image source={resolveImageSource(item.photo, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/galo-de-barcelos.jpg' })} style={styles.dialogImage} resizeMode="cover" />
 
           <View style={styles.dialogBody}>
             <Text style={styles.eyebrowDark}>{category}</Text>
@@ -379,7 +388,7 @@ export default function App() {
           scrollEventThrottle={16}
         >
           <ImageBackground
-            source={{ uri: heroImage ? image(heroImage, 2000) : 'http://localhost:5174/img/descubra-portugal.jpg' }}
+            source={heroImage ? resolveImageSource(heroImage, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/descubra-portugal.jpg' }) : { uri: 'https://projeto-integrador-3-ano.vercel.app/img/descubra-portugal.jpg' }}
             style={styles.hero}
             onLayout={(event) => { sectionOffsets.current.inicio = event.nativeEvent.layout.y; }}
             imageStyle={styles.heroImage}
@@ -472,7 +481,7 @@ export default function App() {
 
           <View style={styles.feature}>
             <ImageBackground
-              source={{ uri: featureImage ? image(featureImage, 1200) : '' }}
+              source={featureImage ? resolveImageSource(featureImage, { uri: 'https://projeto-integrador-3-ano.vercel.app/img/santuariobomjesus.jpg' }) : { uri: 'https://projeto-integrador-3-ano.vercel.app/img/santuariobomjesus.jpg' }}
               style={styles.featureImage}
               imageStyle={styles.featureImageFill}
             />
@@ -502,6 +511,20 @@ export default function App() {
                   onOpen={(detail, type) => { setSelectedItem(detail); setSelectedType(type); }}
                   onModelOpen={(modelName, modelPath) => {
                     const nextUrl = resolveModelUrl(modelPath || makeModelUrl(modelName));
+
+                    if (!nextUrl) {
+                      setSelectedItem({
+                        title: 'Modelo 3D indisponível',
+                        place: 'Configuração necessária',
+                        category: 'Modelo 3D',
+                        photo: 'img/santuariobomjesus.jpg',
+                        short: 'A URL pública da versão web ainda não foi configurada no APK.',
+                        story: 'Configure EXPO_PUBLIC_WEB_URL com o endereço HTTPS publicado da versão web e gere novamente o APK.',
+                        note: 'Os modelos 3D não podem usar localhost em celulares físicos.',
+                      });
+                      setSelectedType('monument');
+                      return;
+                    }
 
                     if (Platform.OS === 'web') {
                       openModelViewer(nextUrl);
@@ -575,6 +598,24 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const localImages = {};
+
+const resolveImageSource = (photo, fallback) => {
+  if (!photo) return fallback;
+
+  const cleaned = String(photo).replace(/\\/g, '/').trim();
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    return { uri: cleaned };
+  }
+
+  const base = process.env.EXPO_PUBLIC_WEB_URL;
+  if (base && cleaned.startsWith('img/')) {
+    return { uri: `${base.replace(/\/$/, '')}/${cleaned}` };
+  }
+
+  return fallback;
+};
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fffdf8' },
