@@ -10,6 +10,7 @@ import {
   monuments as fallbackMonuments,
 } from '@portugal/shared';
 import { fetchPortugalContent } from './src/services/portugalContent';
+import { registerRootComponent } from 'expo';
 
 const filterOptions = [
   { value: 'todos', label: 'Todas' },
@@ -707,3 +708,6 @@ const styles = StyleSheet.create({
   footerText: { color: '#fff', fontSize: 12, lineHeight: 18, opacity: 0.9 },
   footerTop: { color: '#fff', fontSize: 12, fontWeight: '700', paddingVertical: 6 },
 });
+
+// Registra o componente principal do aplicativo
+registerRootComponent(App);
