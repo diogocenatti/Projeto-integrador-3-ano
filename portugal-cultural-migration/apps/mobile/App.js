@@ -591,7 +591,21 @@ export default function App() {
               <Pressable style={styles.closeViewerButton} onPress={() => setModelUrl(null)}>
                 <Text style={styles.closeButtonText}>×</Text>
               </Pressable>
-              <WebView source={{ uri: modelUrl }} style={styles.webView} />
+              <WebView
+                source={{ uri: modelUrl }}
+                style={styles.webView}
+                cacheEnabled
+                javaScriptEnabled
+                domStorageEnabled
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                startInLoadingState
+                renderLoading={() => (
+                  <View style={styles.modelLoading}>
+                    <Text style={styles.modelLoadingText}>Carregando modelo 3D…</Text>
+                  </View>
+                )}
+              />
             </View>
           </Modal>
         )}
@@ -707,6 +721,8 @@ const styles = StyleSheet.create({
   footerSmall: { color: 'rgba(255,255,255,0.65)', fontSize: 9, letterSpacing: 2, marginTop: 2 },
   footerText: { color: '#fff', fontSize: 12, lineHeight: 18, opacity: 0.9 },
   footerTop: { color: '#fff', fontSize: 12, fontWeight: '700', paddingVertical: 6 },
+  modelLoading: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fffdf8', alignItems: 'center', justifyContent: 'center' },
+  modelLoadingText: { color: '#146b45', fontSize: 16, fontWeight: '700' },
 });
 
 // Registra o componente principal do aplicativo
